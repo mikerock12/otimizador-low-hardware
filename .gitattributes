@@ -1,0 +1,8 @@
+# Projeto Windows: mantem CRLF no working copy.
+# Os .bat exigem CRLF para funcionar corretamente.
+* text=auto eol=crlf
+
+# Binarios: nunca converter
+*.png binary
+*.ico binary
+*.exe binary
