@@ -190,7 +190,21 @@ namespace OtimizadorWin10
             }
             if (StopNow && StartValue >= 3)
             {
-                try { RunHidden("sc.exe", "stop \"" + Service + "\"", 8000); } catch { }
+                // API nativa em vez de "sc.exe stop": menos um processo filho
+                // gerado por aplicacao elevada (padrao observado por heuristica).
+                try
+                {
+                    using (var sc = new System.ServiceProcess.ServiceController(Service))
+                    {
+                        if (sc.CanStop && sc.Status != System.ServiceProcess.ServiceControllerStatus.Stopped)
+                        {
+                            sc.Stop();
+                            sc.WaitForStatus(System.ServiceProcess.ServiceControllerStatus.Stopped,
+                                TimeSpan.FromSeconds(8));
+                        }
+                    }
+                }
+                catch { }
             }
         }
 

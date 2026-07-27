@@ -4,7 +4,8 @@
 > (outra IA, outro editor, outro dev). Lê-se este arquivo e entende-se **tudo** que o
 > software é, como foi construído, por que cada decisão foi tomada e o que falta.
 >
-> Última atualização: 24/07/2026 (inclui §13 — falso-positivo de antivírus).
+> Última atualização: 25/07/2026 (inclui §13 — falso-positivo de antivírus, com o
+> segundo incidente e a conclusão sobre assinatura digital em §13.5).
 
 ---
 
@@ -400,15 +401,27 @@ máquina não mudaram.
 ### 13.3 O que falta (fora do código) — em ordem de eficácia
 
 1. **Certificado de assinatura de código (Authenticode)** — a correção definitiva.
+   **Não há substituto.** Nenhuma alteração de código elimina a detecção enquanto o
+   binário for anônimo (ver §13.5).
    - Desde jun/2023 **todo** certificado publicamente confiável (OV ou EV) exige a
      chave privada em **token USB físico ou HSM na nuvem** — não existe mais o .pfx
      simples baixado.
-   - **EV (Extended Validation)**: ~US$ 300–600/ano. Dá **reputação SmartScreen
-     imediata** — é o único que resolve na hora.
-   - **OV/padrão**: ~US$ 200–400/ano (Sectigo, SSL.com, Certum). Mais barato, mas a
-     reputação ainda se constrói com o tempo/downloads.
-   - **Certum Open Source Code Signing**: ~US$ 100–150 — a via mais barata legítima,
-     porém **exige o projeto ser open source público** (viável: publicar no GitHub).
+   - **Azure Trusted Signing (Microsoft)** — ~US$ 10/mês (≈US$ 120/ano), **sem token
+     físico**, assinatura via serviço na nuvem. Hoje é a melhor relação
+     custo/benefício e, por ser operado pela Microsoft, ajuda na reputação junto ao
+     Defender/SmartScreen. Exige verificação da pessoa jurídica (CNPJ) com histórico
+     mínimo de ~3 anos. **Verificar se o Brasil está na lista de países atendidos** —
+     a cobertura vem sendo expandida e esse é o único ponto a confirmar antes de
+     contratar.
+   - **EV (Extended Validation)**: ~US$ 250–600/ano. Dá **reputação SmartScreen
+     imediata** — resolve na hora, é o mais indicado para quem chega na máquina do
+     cliente e precisa que funcione no mesmo dia.
+   - **OV/padrão**: ~US$ 150–400/ano (Sectigo, SSL.com, Certum). Mais barato, mas
+     **não dá mais confiança instantânea** no SmartScreen: a reputação se constrói com
+     downloads/tempo.
+   - **Certum Open Source Code Signing**: ~US$ 100–150 — via barata legítima, porém
+     **exige o projeto ser open source público**. O repositório hoje é privado
+     (`mikerock12/otimizador-low-hardware`); seria necessário torná-lo público.
    - ⚠️ **Certificado ICP-Brasil (e-CNPJ A1/A3) NÃO serve para Authenticode** — as
      raízes da ICP-Brasil não estão no Microsoft Trusted Root Program para assinatura
      de código. É o erro mais comum de quem está no Brasil.
@@ -448,3 +461,52 @@ máquina não mudaram.
 - Se o Defender apagar o exe durante o desenvolvimento nesta máquina, restaurar por
   Segurança do Windows → Proteção contra vírus → Histórico de proteção, e **não** por
   desativação da proteção em tempo real.
+
+### 13.5 Segundo incidente (25/07/2026) — limite do que o código resolve
+
+Mesmo após todas as correções da §13.2, o Defender passou a classificar o arquivo
+como **Trojan** em algumas máquinas e o **Google Chrome bloqueou o download**
+("arquivo com vírus"). Uma última limpeza foi feita (`sc.exe stop` →
+`ServiceController`), mas a conclusão técnica é definitiva:
+
+> **A margem de correção por código está esgotada.** O que resta detectando não são
+> defeitos do programa — é a ausência de identidade verificável, somada a
+> comportamentos que são a **própria função** do software.
+
+Por que continua sendo sinalizado, mesmo com o código limpo:
+
+1. **Binário anônimo com reputação zero.** Defender e Google Safe Browsing são
+   **reputacionais**. Um `.exe` novo, sem assinatura, baixado por pouquíssimas
+   pessoas, é tratado como desconhecido — e "desconhecido + pede administrador" é
+   classificado como risco por padrão. Cada build gera um hash novo, então a
+   reputação nunca se acumula.
+2. **O comportamento do produto coincide com técnicas de malware.** Desativar
+   telemetria (DiagTrack), relatório de erros, tarefas agendadas e serviços do
+   Windows é, na taxonomia MITRE ATT&CK, *Defense Evasion* — é literalmente o que um
+   trojan faz para se esconder. **Isso não pode nem deve ser removido: é o produto.**
+   Detecções com sufixo `!ml` (ex.: `Trojan:Win32/Wacatac.B!ml`) indicam justamente
+   veredito de machine learning por comportamento, não assinatura de vírus real.
+3. **Chrome (Safe Browsing)** pesa fortemente a assinatura do editor e o volume de
+   downloads do domínio de origem.
+
+**Plano correto, em ordem:**
+
+1. **Assinar o executável** (§13.3) — resolve 1 e 3, e reduz drasticamente 2, porque
+   o veredito deixa de ser sobre um binário anônimo e passa a ser sobre um editor
+   identificado e responsabilizável.
+2. **Submeter como falso positivo à Microsoft** a cada versão, até a reputação firmar:
+   https://www.microsoft.com/en-us/wdsi/filesubmission (grátis, 1–3 dias, opção
+   "Software developer" → detecção incorreta).
+3. **Chrome/Safe Browsing**: hospedar em `https://www.smellsliketech.com.br` (não no
+   Google Drive), verificar o domínio no **Google Search Console** (mostra em
+   "Problemas de segurança" se o site foi marcado) e, se houver bloqueio, contestar em
+   https://safebrowsing.google.com/safebrowsing/report_error/
+4. **Paliativo enquanto não há certificado**: distribuir em **.zip** (reduz o bloqueio
+   no download, embora não elimine a detecção na execução) e publicar o **SHA-256** ao
+   lado do link, para o cliente conferir a integridade.
+5. **Publicar builds como Release do GitHub** em vez de anexar `.exe` ao repositório —
+   com o certificado, o executável assinado vai na release.
+
+**Expectativa realista a comunicar ao cliente/usuário:** sem certificado, o aviso vai
+continuar aparecendo em parte das máquinas. Com certificado EV ou Azure Trusted
+Signing, o problema deixa de existir na prática em poucos dias.
