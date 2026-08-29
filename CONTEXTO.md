@@ -4,8 +4,9 @@
 > (outra IA, outro editor, outro dev). Lê-se este arquivo e entende-se **tudo** que o
 > software é, como foi construído, por que cada decisão foi tomada e o que falta.
 >
-> Última atualização: 25/07/2026 (inclui §13 — falso-positivo de antivírus, com o
-> segundo incidente e a conclusão sobre assinatura digital em §13.5).
+> Última atualização: 29/08/2026 (repositório tornado público, README reescrito com
+> prints e exemplos de hardware, e §13.6 — terceiro incidente de falso-positivo,
+> `MachineLearning/Anomalous` do Malwarebytes).
 
 ---
 
@@ -74,9 +75,10 @@ Software Otimizador/
 ├── app.manifest         # requireAdministrator + dpiAware
 ├── icon.ico             # ícone multi-resolução (16..256px)
 ├── assets/logo.png      # logo Smells Like Tech (fundo escuro)
-├── README.md            # documentação de usuário/racional
+├── README.md            # documentação de usuário/racional (com prints e exemplos)
 ├── CONTEXTO.md          # este arquivo
 ├── .gitignore           # bin/, obj/, *.exe
+├── docs/screenshots/    # prints usados no README (13 PNGs)
 ├── bin/OtimizadorWin10.exe
 └── src/
     ├── Program.cs       # Main: Run(SplashForm) → Run(MainForm)
@@ -335,8 +337,16 @@ build.bat
 ```
 → `bin\OtimizadorWin10.exe`. Distribuição = copiar **só o exe** (logo e ícone vão
 dentro). Na máquina do cliente: executar → UAC "Sim" → (se SmartScreen) "Executar
-mesmo assim". Git: repositório local na raiz, sem remoto e **sem commits até
-23/07/2026** — o dono ainda não pediu versionamento.
+mesmo assim".
+
+**Git/GitHub:** remoto em `https://github.com/mikerock12/otimizador-low-hardware`,
+propriedade da conta `mikerock12` (Maicon Nunes), branch `main`. Desde **29/08/2026 o
+repositório é público** — decisão do dono, com dois objetivos: transparência (qualquer
+um lê o fonte e recompila, o que é argumento direto contra o falso-positivo de
+antivírus) e elegibilidade ao **Certum Open Source Code Signing** (§13.3/§13.6).
+O `.gitignore` mantém `bin/`, `obj/` e `*.exe` fora do versionamento: builds devem ser
+publicados como **Release do GitHub**, não commitados. Os prints do README ficam em
+`docs/screenshots/`.
 
 ---
 
@@ -420,8 +430,9 @@ máquina não mudaram.
      **não dá mais confiança instantânea** no SmartScreen: a reputação se constrói com
      downloads/tempo.
    - **Certum Open Source Code Signing**: ~US$ 100–150 — via barata legítima, porém
-     **exige o projeto ser open source público**. O repositório hoje é privado
-     (`mikerock12/otimizador-low-hardware`); seria necessário torná-lo público.
+     **exige o projeto ser open source público**. ✅ **Requisito atendido desde
+     29/08/2026**: o repositório `mikerock12/otimizador-low-hardware` passou a ser
+     **público**, então esta via está liberada (ver §13.6).
    - ⚠️ **Certificado ICP-Brasil (e-CNPJ A1/A3) NÃO serve para Authenticode** — as
      raízes da ICP-Brasil não estão no Microsoft Trusted Root Program para assinatura
      de código. É o erro mais comum de quem está no Brasil.
@@ -510,3 +521,51 @@ Por que continua sendo sinalizado, mesmo com o código limpo:
 **Expectativa realista a comunicar ao cliente/usuário:** sem certificado, o aviso vai
 continuar aparecendo em parte das máquinas. Com certificado EV ou Azure Trusted
 Signing, o problema deixa de existir na prática em poucos dias.
+
+### 13.6 Terceiro incidente (29/08/2026) — Malwarebytes `MachineLearning/Anomalous`
+
+O **Malwarebytes** passou a detectar o executável como **`MachineLearning/Anomalous`**
+(o dono colocou o arquivo nas exceções da própria bancada para continuar trabalhando).
+
+**Diagnóstico: é o mesmo fenômeno da §13.5, agora em outro fabricante.** O prefixo
+`MachineLearning/` e o termo `Anomalous` são a nomenclatura do Malwarebytes para
+veredito de **modelo estatístico**, equivalente ao sufixo `!ml` do Defender. Não há
+família de malware identificada — não existe uma; o motor apenas classificou como
+"anômalo" um binário sem assinatura, sem reputação, que pede administrador e desativa
+serviços/tarefas do Windows.
+
+**Verificação feita no código nesta data** (nada regrediu desde a §13.2):
+
+- `grep` em `src/` confirma **zero** ocorrências de `cmd.exe`, `reg.exe`, `taskkill`,
+  `net stop` e `-ExecutionPolicy Bypass`;
+- resta **uma única** chamada `powershell.exe -NoProfile -NonInteractive -Command`
+  (`Actions.cs:457`, remoção de Appx);
+- `src/AssemblyInfo.cs` intacto — VERSIONINFO completo no binário;
+- **nenhuma API de rede no projeto**: não há `System.Net`, `WebClient`,
+  `HttpWebRequest`, `HttpClient` nem socket. Os três únicos `Process.Start` são
+  `RunHidden` (powercfg/schtasks/fsutil/powershell), `shutdown.exe` (botão de reiniciar)
+  e a URL do site aberta no navegador. Esse é um argumento forte a usar em contestação
+  de falso positivo.
+
+**Conclusão inalterada:** não há mais o que corrigir por código. Substituir o último
+PowerShell exigiria consumir o WinRT `Windows.Management.Deployment.PackageManager`, o
+que obrigaria a referenciar `Windows.winmd` do Windows SDK e **quebraria a restrição de
+build sem SDK** (§2) — troca ruim, e sem garantia de mudar o veredito de um modelo que
+julga comportamento, não a forma da chamada.
+
+**Ações desta data:**
+
+1. ✅ Repositório tornado **público** — além da transparência (qualquer um lê o código e
+   recompila), isso **destrava o Certum Open Source Code Signing** (~US$ 100–150, §13.3),
+   que era a via barata bloqueada pelo repositório privado.
+2. ✅ README ganhou a seção **"Antivírus: por que aparece alerta e por que o software é
+   seguro"**, escrita para o cliente final: explica o que significa `!ml`/
+   `MachineLearning/Anomalous`, por que o programa cai nesse perfil, o que já foi
+   limpo no código, como qualquer um verifica (ler o fonte, recompilar com `build.bat`,
+   VirusTotal) e como agir se o antivírus bloquear — **sem** orientar a desativar
+   proteção ou excluir pastas inteiras (§13.4).
+3. ⏳ Pendente: reportar o falso positivo ao Malwarebytes
+   (https://www.malwarebytes.com/support → false positive) e à Microsoft
+   (https://www.microsoft.com/en-us/wdsi/filesubmission). Refazer a cada build.
+4. ⏳ Pendente e prioritário: **contratar o certificado e assinar** (Certum OSS agora
+   elegível, ou Azure Trusted Signing). É a única coisa que encerra o assunto.
