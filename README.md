@@ -6,6 +6,15 @@ tudo explicado item por item, tudo desmarcável e tudo reversível.**
 
 > Criado por **Maicon Nunes** — Smells Like Tech Informática — www.smellsliketech.com.br
 
+> **Sobre este repositório:** o código está público por duas razões. A primeira é
+> utilidade — é uma ferramenta feita para ajudar técnicos de bancada, e quem for usá-la
+> precisa poder ler e compilar o que vai rodar na máquina do cliente. A segunda é
+> portfólio: é um projeto real, usado no dia a dia, e o fonte mostra as decisões de
+> engenharia por trás dele — detecção de hardware por WMI, catálogo declarativo com
+> condições por máquina, reversão baseada em captura do estado anterior, benchmark com
+> I/O sem cache via P/Invoke e a escolha deliberada de nunca usar `cmd.exe` nem shell
+> oculto.
+
 <p align="center">
   <img src="docs/screenshots/01-splash.png" width="360" alt="Tela de abertura do Otimizador Low Hardware">
 </p>
@@ -337,7 +346,7 @@ porque não há nenhuma.
 
 | Sinal que o motor observa | Por que acontece aqui |
 |---|---|
-| **Executável sem assinatura digital** | ainda não há certificado Authenticode (custa de US$ 100 a 600/ano e, desde 2023, exige token físico ou serviço em nuvem) |
+| **Executável sem assinatura digital** | assinar exigiria um certificado Authenticode — de US$ 100 a 600 por ano e, desde 2023, com chave privada em token físico ou HSM na nuvem. Esta é uma ferramenta gratuita de bancada, então **o executável não é assinado, por decisão consciente** |
 | **Reputação zero** | cada build gera um hash novo, baixado por pouquíssimas pessoas; Defender, SmartScreen e Safe Browsing são **reputacionais** por natureza |
 | **Pede elevação de administrador** | precisa disso para mexer em serviços, HKLM, SMART e chkdsk |
 | **Desativa serviços, tarefas agendadas e telemetria do Windows** | na taxonomia MITRE ATT&CK isso é classificado como *Defense Evasion* — é exatamente o que um trojan faz para se esconder. Só que aqui **é a função do produto**, feita à vista do usuário |
@@ -368,9 +377,19 @@ Não há disfarce nem ofuscação — houve limpeza real dos padrões que os mot
 
 **A margem de correção por código está esgotada.** O que ainda dispara os motores não é
 defeito do programa: é a ausência de identidade verificável somada a comportamentos que
-são a própria função dele. A solução definitiva é **assinatura Authenticode**
-(o `build.bat` já está preparado: basta definir `OTIM_CERT_SUBJECT`) mais submissão do
-falso positivo aos fabricantes a cada versão.
+são a própria função dele.
+
+A única coisa que encerraria o assunto é a **assinatura Authenticode**, e ela é uma
+decisão econômica, não técnica: um certificado custa de US$ 100 a 600 por ano e exige
+token físico ou HSM na nuvem. Para uma ferramenta gratuita, feita para ajudar técnicos
+de bancada, **isso não se justifica — o executável não será assinado.** O `build.bat`
+tem o passo de assinatura pronto (variável `OTIM_CERT_SUBJECT`) caso isso mude um dia,
+mas não é o plano.
+
+Na prática, a consequência é simples e assumida: **a forma recomendada de obter este
+programa é compilar o código-fonte**, que está inteiro aqui. Quem compila não depende da
+reputação de binário nenhum — o executável é gerado na própria máquina, a partir de um
+código que dá para ler.
 
 ### Como qualquer pessoa pode verificar que é seguro
 
@@ -461,7 +480,8 @@ vão embutidos). Na máquina do cliente: executar → UAC "Sim" → (se aparecer
 
 O `build.bat` tem ainda um passo **opcional** de assinatura Authenticode, ativado pela
 variável de ambiente `OTIM_CERT_SUBJECT`; sem ela o build termina normalmente, apenas
-sem assinar.
+sem assinar — que é o caso hoje, por opção
+([veja por quê](#antivírus-por-que-aparece-alerta-e-por-que-o-software-é-seguro)).
 
 ---
 

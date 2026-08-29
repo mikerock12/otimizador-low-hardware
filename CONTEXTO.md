@@ -5,8 +5,9 @@
 > software é, como foi construído, por que cada decisão foi tomada e o que falta.
 >
 > Última atualização: 29/08/2026 (repositório tornado público, README reescrito com
-> prints e exemplos de hardware, e §13.6 — terceiro incidente de falso-positivo,
-> `MachineLearning/Anomalous` do Malwarebytes).
+> prints e exemplos de hardware, §13.6 — terceiro incidente de falso-positivo
+> `MachineLearning/Anomalous` do Malwarebytes — e §13.7, decisão de **não** comprar
+> certificado de assinatura de código).
 
 ---
 
@@ -319,7 +320,9 @@ tweaks instáveis. Tudo reversível (exceto remoção de apps, que volta pela St
 
 ## 11. Backlog / ideias futuras (nada disso foi começado)
 
-- **Comprar o certificado Authenticode e assinar** (§13.3) — maior pendência aberta.
+- ~~Comprar o certificado Authenticode e assinar~~ — **descartado em 29/08/2026 por
+  decisão do dono** (não vale o custo anual para uma ferramenta de bancada). Ver §13.7.
+  Não reabrir este item sem o dono pedir.
 - Testar/ajustar parsing do chkdsk em HDD real.
 - Gerenciador de programas de inicialização de terceiros (hoje só remove o atraso
   artificial e o OneDrive).
@@ -410,6 +413,10 @@ máquina não mudaram.
 
 ### 13.3 O que falta (fora do código) — em ordem de eficácia
 
+> ⚠️ **Seção histórica.** A pesquisa abaixo continua correta e vale como registro, mas
+> a decisão de 29/08/2026 (**§13.7**) foi **não comprar certificado**. Leia a §13.7
+> antes de agir com base nesta seção.
+
 1. **Certificado de assinatura de código (Authenticode)** — a correção definitiva.
    **Não há substituto.** Nenhuma alteração de código elimina a detecção enquanto o
    binário for anônimo (ver §13.5).
@@ -432,7 +439,8 @@ máquina não mudaram.
    - **Certum Open Source Code Signing**: ~US$ 100–150 — via barata legítima, porém
      **exige o projeto ser open source público**. ✅ **Requisito atendido desde
      29/08/2026**: o repositório `mikerock12/otimizador-low-hardware` passou a ser
-     **público**, então esta via está liberada (ver §13.6).
+     **público**, o que tornou esta via elegível — mas ela também foi **recusada** na
+     mesma data (§13.7).
    - ⚠️ **Certificado ICP-Brasil (e-CNPJ A1/A3) NÃO serve para Authenticode** — as
      raízes da ICP-Brasil não estão no Microsoft Trusted Root Program para assinatura
      de código. É o erro mais comum de quem está no Brasil.
@@ -500,7 +508,8 @@ Por que continua sendo sinalizado, mesmo com o código limpo:
 3. **Chrome (Safe Browsing)** pesa fortemente a assinatura do editor e o volume de
    downloads do domínio de origem.
 
-**Plano correto, em ordem:**
+**Plano correto, em ordem** (escrito em 25/07/2026; o item 1 foi posteriormente
+**recusado** pelo dono — ver §13.7):
 
 1. **Assinar o executável** (§13.3) — resolve 1 e 3, e reduz drasticamente 2, porque
    o veredito deixa de ser sobre um binário anônimo e passa a ser sobre um editor
@@ -567,5 +576,58 @@ julga comportamento, não a forma da chamada.
 3. ⏳ Pendente: reportar o falso positivo ao Malwarebytes
    (https://www.malwarebytes.com/support → false positive) e à Microsoft
    (https://www.microsoft.com/en-us/wdsi/filesubmission). Refazer a cada build.
-4. ⏳ Pendente e prioritário: **contratar o certificado e assinar** (Certum OSS agora
-   elegível, ou Azure Trusted Signing). É a única coisa que encerra o assunto.
+4. ❌ **Descartado**: contratar certificado e assinar. Era a única coisa que
+   encerraria o assunto, mas o dono decidiu no mesmo dia que o custo anual não se
+   justifica — ver **§13.7**, que fecha o tema.
+
+### 13.7 Decisão final sobre assinatura digital (29/08/2026) — NÃO assinar
+
+Depois da §13.6, o dono decidiu: **não haverá compra de certificado de assinatura de
+código.** Nem EV, nem OV, nem Azure Trusted Signing, nem Certum Open Source — apesar de
+o repositório público ter tornado esta última elegível.
+
+**Razão:** o programa é uma ferramenta de bancada para ajudar técnicos, e o repositório
+no GitHub serve também como **portfólio de desenvolvimento**. Um custo anual recorrente
+de US$ 100–600 não se justifica nesse contexto. É uma decisão de negócio, não uma
+limitação técnica — e está tomada.
+
+**Consequências assumidas, que devem ser comunicadas com honestidade:**
+
+1. **Parte dos antivírus vai continuar sinalizando o executável** com vereditos de
+   machine learning (`!ml`, `MachineLearning/Anomalous`). Isso não vai mudar. Não
+   perseguir mais "limpezas de código" atrás disso: a §13.6 já provou que o código está
+   limpo e que o que resta é reputação e comportamento inerente ao produto.
+2. **A via de distribuição recomendada passa a ser o código-fonte.** Quem compila com o
+   `build.bat` gera o binário na própria máquina e não depende de reputação de arquivo
+   nenhum. O README já está escrito assim.
+3. **O passo de assinatura do `build.bat` fica onde está** (dormente, dependente de
+   `OTIM_CERT_SUBJECT`). Não remover: é código correto, custa nada mantê-lo e evita
+   reescrever tudo se a decisão mudar.
+4. Continua valendo a pena **reportar falsos positivos** aos fabricantes (grátis) e
+   **nunca** orientar cliente a desativar antivírus ou excluir pastas inteiras (§13.4).
+
+**Para quem continuar o projeto:** este item está **encerrado**. Se um antivírus novo
+detectar o binário, o procedimento é (a) conferir que nada regrediu nos padrões da
+§13.2 com um `grep` por `cmd.exe`/`reg.exe`/`taskkill`/`net stop`/`ExecutionPolicy`,
+(b) reportar o falso positivo ao fabricante, (c) registrar o incidente aqui. **Não**
+propor a compra de certificado de novo.
+
+### 13.8 Argumentos objetivos para contestar um falso positivo
+
+Fatos verificáveis do binário, úteis em qualquer formulário de reporte:
+
+- **Nenhuma capacidade de rede.** O projeto não referencia `System.Net`, `WebClient`,
+  `HttpWebRequest`, `HttpClient` nem sockets. Sem download de payload, sem C2, sem
+  exfiltração — tecnicamente impossível, não é questão de confiança.
+- **Três `Process.Start` no projeto inteiro**, todos auditáveis: `RunHidden`
+  (powercfg/schtasks/fsutil/powershell), `shutdown.exe` (botão "Reiniciar agora") e a
+  URL do site aberta no navegador padrão.
+- **Zero shell.** Nenhum `cmd.exe`, `reg.exe`, `taskkill` ou `net stop`; uma única
+  chamada `powershell.exe -NoProfile -NonInteractive -Command` (remoção de Appx).
+- **Sem ofuscação, sem packer, sem criptografia de seções.** O IL é legível em qualquer
+  descompilador.
+- **VERSIONINFO completo** (empresa, produto, versão, copyright) via `AssemblyInfo.cs`.
+- **Todas as alterações são exibidas na tela antes de aplicar** e gravadas num arquivo
+  de reversão com o estado anterior de cada chave e serviço.
+- **Código-fonte público** em `https://github.com/mikerock12/otimizador-low-hardware` —
+  o binário é reproduzível por qualquer um com `build.bat`.
