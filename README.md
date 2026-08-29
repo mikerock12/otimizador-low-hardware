@@ -23,6 +23,7 @@ tudo explicado item por item, tudo desmarcável e tudo reversível.**
 
 ## Índice
 
+- [Destaques técnicos](#destaques-técnicos)
 - [Para que serve](#para-que-serve)
 - [Linguagem e tecnologia](#linguagem-e-tecnologia)
 - [O programa em 5 passos (com prints)](#o-programa-em-5-passos-com-prints)
@@ -36,6 +37,78 @@ tudo explicado item por item, tudo desmarcável e tudo reversível.**
 - [Diagnóstico e nota de 1 a 10](#diagnóstico-e-nota-de-1-a-10)
 - [Como compilar](#como-compilar)
 - [Estrutura do código](#estrutura-do-código)
+
+---
+
+## Destaques técnicos
+
+Os problemas mais interessantes que este projeto teve de resolver, com o link para o
+trecho de código correspondente.
+
+**1. O Windows 11 se declara "Windows 10" no registro.**
+`ProductName` continua devolvendo `Windows 10 Pro` numa máquina com Windows 11 — quem
+confia nessa string aplica ajustes na versão errada. A distinção confiável é o número de
+build: `CurrentBuildNumber >= 22000`. Só depois disso é que o nome exibido é corrigido, e
+é essa flag que faz Widgets, Copilot e menu de contexto clássico aparecerem apenas onde
+existem.
+→ [`src/HardwareInfo.cs:194`](src/HardwareInfo.cs#L194)
+
+**2. Um benchmark de disco que o cache do Windows não consegue falsear.**
+Ler um arquivo com as APIs normais do .NET mede, na prática, a RAM: o cache de páginas
+devolve o conteúdo sem tocar no disco. A medição real exige abrir o arquivo com
+`FILE_FLAG_NO_BUFFERING` via `CreateFileW`. Só que essa flag impõe uma condição pouco
+óbvia — o buffer precisa estar alinhado ao tamanho do setor, e um `byte[]` gerenciado não
+oferece essa garantia. Daí o `VirtualAlloc`. É esse caminho que produz o número que
+realmente separa HDD de SSD: leitura aleatória 4K, ~80 IOPS contra milhares.
+→ [`src/Diagnostics.cs:501-560`](src/Diagnostics.cs#L501)
+
+**3. O JIT estava apagando o benchmark de CPU.**
+Um laço aritmético cujo resultado ninguém lê é código morto, e o compilador JIT tem todo o
+direito de removê-lo — o benchmark passa a medir o tempo de não fazer nada, e reporta
+desempenho alto em qualquer máquina. A correção é obrigar o resultado a escapar, com um
+acumulador estático alimentado por `Interlocked.Add`.
+→ [`src/Diagnostics.cs:426`](src/Diagnostics.cs#L426) e
+[`src/Diagnostics.cs:457`](src/Diagnostics.cs#L457)
+
+**4. Reversão que não depende de lembrar o que foi feito.**
+Em vez de manter uma lista paralela de "como desfazer cada otimização" — que envelhece mal
+e sempre esquece um caso — toda ação implementa `CaptureUndo()`, que lê e devolve o
+**estado anterior** imediatamente antes de aplicar. O resultado vira JSON com um campo
+`Kind`, e a reversão percorre a lista na ordem inversa despachando por esse campo. Quem
+adiciona uma otimização nova ganha a reversão de graça: basta a ação saber se fotografar.
+→ [`src/Actions.cs:24`](src/Actions.cs#L24) e
+[`src/Engine.cs:165`](src/Engine.cs#L165)
+
+**5. Catálogo declarativo em vez de condicional espalhado.**
+Cada otimização carrega a própria condição de aplicabilidade como um
+`Func<HardwareInfo,bool>` (`SoHDD`, `SoSSD`, `PoucaRam`, `SoWin11`…) e um tier mínimo.
+A tela de personalização não sabe nada sobre hardware: ela filtra a lista por `AplicaA(hw)`
+e desenha o que sobrou. Adicionar uma otimização é acrescentar um item — nunca editar
+fluxo de controle.
+→ [`src/Engine.cs:14`](src/Engine.cs#L14) e [`src/Catalog.cs`](src/Catalog.cs)
+
+**6. Ler a saída do chkdsk sem virar sopa de caracteres.**
+O `chkdsk` escreve no console usando a **codepage OEM** da cultura, não ANSI nem UTF-8 —
+capturar a saída com o encoding padrão devolve acentuação quebrada e estraga o parsing do
+resumo em português. Além disso, a barra de progresso reescreve a mesma linha com `\r`,
+inundando o log. A solução lê com `CurrentCulture.TextInfo.OEMCodePage` e filtra as linhas
+de progresso antes de exibir.
+→ [`src/Diagnostics.cs:339`](src/Diagnostics.cs#L339)
+
+**7. Zero shell — uma decisão de engenharia, não estética.**
+Um processo elevado que gera `cmd.exe` ou `powershell.exe` oculto é uma das assinaturas
+comportamentais mais fortes que motores heurísticos procuram. Todo o programa foi migrado
+para API nativa: `ServiceController` no lugar de `net stop`, API de registro no lugar de
+`reg.exe`, a classe WMI `SystemRestore` no lugar de `Checkpoint-Computer`, e o
+`OneDriveSetup.exe /uninstall` oficial no lugar de uma cadeia `taskkill`+`if exist`.
+Sobrou uma única chamada de PowerShell, para remover apps Appx.
+→ [`src/Actions.cs`](src/Actions.cs) · contexto completo na
+[seção sobre antivírus](#antivírus-por-que-aparece-alerta-e-por-que-o-software-é-seguro)
+
+**Restrições autoimpostas.** O projeto se limita à sintaxe do **C# 5** e compila com o
+`csc.exe` que já vem no Windows — sem Visual Studio, sem SDK, sem NuGet, sem `.csproj`.
+Não é nostalgia: é o que garante que a ferramenta seja recompilável em qualquer máquina
+recém-formatada, inclusive na bancada, e que rode no cliente sem instalar runtime nenhum.
 
 ---
 
