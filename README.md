@@ -156,6 +156,11 @@ configuração ("disponíveis" = itens que se aplicam àquele hardware/versão d
 "pré-marcadas" = itens já selecionados no perfil recomendado; "opt-in" = itens que
 aparecem mas exigem marcação manual por serem arriscados).
 
+> **Sobre os prints desta seção:** são a interface real do programa, alimentada com as
+> especificações de cada máquina através de um harness de testes — a mesma técnica usada
+> para validar os perfis sem precisar ter as nove máquinas na bancada. A tela, o
+> catálogo, as condições de hardware e a recomendação são exatamente os do produto.
+
 | Máquina | CPU | RAM | Disco | Windows | Perfil | Disponíveis | Pré-marcadas | Opt-in |
 |---|---|---|---|---|---|---|---|---|
 | **Positivo Motion Q232** | Celeron N3010 (2C/2T) | 4 GB DDR3L | HDD 500 GB | 10 | **Ultra** | 74 | 67 | 7 |
