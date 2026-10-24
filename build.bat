@@ -8,7 +8,7 @@ if not exist "%CSC%" set CSC=%WINDIR%\Microsoft.NET\Framework\v4.0.30319\csc.exe
 
 if not exist bin mkdir bin
 
-"%CSC%" /nologo /target:winexe /out:bin\OtimizadorWin10.exe ^
+"%CSC%" /nologo /target:winexe /codepage:65001 /out:bin\OtimizadorWin10.exe ^
   /win32manifest:app.manifest ^
   /win32icon:icon.ico ^
   /resource:assets\logo.png,logo.png ^

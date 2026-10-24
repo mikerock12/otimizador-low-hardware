@@ -33,11 +33,16 @@ namespace OtimizadorWin10
             psi.RedirectStandardError = true;
             using (var p = Process.Start(psi))
             {
+                var output = p.StandardOutput.ReadToEndAsync();
+                var errors = p.StandardError.ReadToEndAsync();
                 if (!p.WaitForExit(timeoutMs))
                 {
                     try { p.Kill(); } catch { }
                     throw new TimeoutException(exe + " nao respondeu no tempo esperado.");
                 }
+                System.Threading.Tasks.Task.WaitAll(output, errors);
+                if (p.ExitCode != 0)
+                    throw new InvalidOperationException(exe + " retornou codigo " + p.ExitCode + ": " + errors.Result);
             }
         }
     }
@@ -82,7 +87,7 @@ namespace OtimizadorWin10
             using (var bk = RegistryKey.OpenBaseKey(HiveOf(Hive), RegistryView.Registry64))
             using (var k = bk.OpenSubKey(Path))
             {
-                object cur = (k == null) ? null : k.GetValue(Name);
+                object cur = (k == null) ? null : k.GetValue(Name, null, RegistryValueOptions.DoNotExpandEnvironmentNames);
                 if (cur == null) { d["Existed"] = false; }
                 else
                 {
@@ -255,8 +260,8 @@ namespace OtimizadorWin10
         {
             string exe = Convert.ToString(d["Exe"]);
             string args = Convert.ToString(d["Args"]);
-            try { RunHidden(exe, args, 60000); log(Convert.ToString(d["Detalhe"])); }
-            catch (Exception ex) { log("Falha ao desfazer comando (" + exe + "): " + ex.Message); }
+            RunHidden(exe, args, 60000);
+            log(Convert.ToString(d["Detalhe"]));
         }
     }
 
@@ -291,7 +296,7 @@ namespace OtimizadorWin10
             using (var bk = RegistryKey.OpenBaseKey(HiveOf(Hive), RegistryView.Registry64))
             using (var k = bk.OpenSubKey(Path))
             {
-                object cur = (k == null) ? null : k.GetValue(Name);
+                object cur = (k == null) ? null : k.GetValue(Name, null, RegistryValueOptions.DoNotExpandEnvironmentNames);
                 if (cur == null) { d["Existed"] = false; }
                 else
                 {

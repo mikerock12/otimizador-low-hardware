@@ -77,3 +77,14 @@ O software altera serviços e configurações do Windows, portanto requer privil
 
 **Maicon Nunes** — Smells Like Tech Informática  
 [GitHub](https://github.com/mikerock12) · [Site](https://www.smellsliketech.com.br)
+
+
+## Portal e publicações
+
+Demonstração, recursos e download da última versão: [Softwares SLT](https://softwares.smellsliketech.com.br/apps/otimizador/).
+
+Cada merge em `main` passa pelo CI e gera uma nova release estável com SHA-256. O portal consulta a release mais recente automaticamente (cache de até cinco minutos). Código-fonte é mantido neste repositório; o projeto central apenas o referencia como submódulo.
+
+### Melhorias 1.1
+
+Reversão gravada atomicamente antes de cada ação, inclusive falhas parciais; itens que falham ao reverter permanecem disponíveis para nova tentativa. Comandos drenam stdout/stderr em paralelo e códigos de erro são propagados. Valores de registro expansíveis preservam as variáveis originais. A compilação usa UTF-8.

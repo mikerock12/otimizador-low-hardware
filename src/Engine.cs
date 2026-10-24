@@ -80,6 +80,10 @@ namespace OtimizadorWin10
                 log(s);
             };
 
+            string undoPath = Path.Combine(PastaDados, "undo_" + DateTime.Now.ToString("yyyyMMdd_HHmmss_fff") + ".json");
+            SalvarReversao(undoPath, undoList);
+            res.ArquivoUndo = undoPath;
+
             if (criarRestorePoint)
             {
                 logAll("Criando ponto de restauracao do sistema (pode levar 1-2 minutos)...");
@@ -99,8 +103,12 @@ namespace OtimizadorWin10
                     try
                     {
                         var undo = acao.CaptureUndo();
+                        if (undo != null)
+                        {
+                            undoList.Add(undo);
+                            SalvarReversao(undoPath, undoList);
+                        }
                         acao.Apply(logAll);
-                        if (undo != null) undoList.Add(undo);
                         logAll("  OK: " + acao.Describe());
                         res.Sucesso++;
                     }
@@ -122,22 +130,7 @@ namespace OtimizadorWin10
                 progresso(feito, total);
             }
 
-            // Grava arquivo de reversao (na ordem inversa de aplicacao)
-            try
-            {
-                undoList.Reverse();
-                var ser = new JavaScriptSerializer();
-                string undoPath = Path.Combine(PastaDados,
-                    "undo_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".json");
-                File.WriteAllText(undoPath, ser.Serialize(undoList), Encoding.UTF8);
-                res.ArquivoUndo = undoPath;
-                logAll("");
-                logAll("Arquivo de reversao gravado em: " + undoPath);
-            }
-            catch (Exception ex)
-            {
-                logAll("AVISO: falha ao gravar arquivo de reversao: " + ex.Message);
-            }
+            logAll("Arquivo de reversao gravado em: " + undoPath);
 
             // Grava log
             try
@@ -150,6 +143,16 @@ namespace OtimizadorWin10
             catch { }
 
             return res;
+        }
+
+        static void SalvarReversao(string caminho, List<Dictionary<string, object>> itens)
+        {
+            var reversa = new List<Dictionary<string, object>>(itens);
+            reversa.Reverse();
+            string temporario = caminho + ".tmp";
+            File.WriteAllText(temporario, new JavaScriptSerializer().Serialize(reversa), Encoding.UTF8);
+            if (File.Exists(caminho)) File.Replace(temporario, caminho, null);
+            else File.Move(temporario, caminho);
         }
 
         public static string UltimoArquivoUndo()
@@ -167,6 +170,7 @@ namespace OtimizadorWin10
             var ser = new JavaScriptSerializer();
             var lista = ser.Deserialize<List<Dictionary<string, object>>>(File.ReadAllText(undoFile, Encoding.UTF8));
             int ok = 0;
+            var pendentes = new List<Dictionary<string, object>>();
             foreach (var d in lista)
             {
                 try
@@ -176,14 +180,22 @@ namespace OtimizadorWin10
                     else if (kind == "service") ServiceAction.Revert(d, log);
                     else if (kind == "cmd") CmdAction.Revert(d, log);
                     else if (kind == "task") TaskAction.Revert(d, log);
+                    else throw new InvalidDataException("Tipo de reversao desconhecido: " + kind);
                     ok++;
                 }
                 catch (Exception ex)
                 {
+                    pendentes.Add(d);
                     log("Falha ao reverter um item: " + ex.Message);
                 }
             }
-            try { File.Move(undoFile, undoFile + ".revertido"); } catch { }
+            if (pendentes.Count == 0) File.Move(undoFile, undoFile + ".revertido");
+            else
+            {
+                pendentes.Reverse();
+                SalvarReversao(undoFile, pendentes);
+                log("Itens com falha preservados para nova tentativa.");
+            }
             return ok;
         }
 
