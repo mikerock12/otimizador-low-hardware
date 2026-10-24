@@ -1,0 +1,44 @@
+name: Windows CI and Release
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        shell: cmd
+        run: build.bat
+      - name: Regression tests
+        shell: powershell
+        run: ./tools/testar.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-app
+          path: bin/OtimizadorWin10.exe
+          if-no-files-found: error
+  release:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-app
+          path: release
+      - name: Publish stable build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd release
+          sha256sum OtimizadorWin10.exe > SHA256SUMS.txt
+          gh release create "build-${{ github.run_number }}-${GITHUB_SHA:0:7}" OtimizadorWin10.exe SHA256SUMS.txt --target "$GITHUB_SHA" --title "Otimizador Low Hardware — build ${{ github.run_number }}" --notes "Versão validada pelo CI. Download e documentação: https://softwares.smellsliketech.com.br/apps/otimizador/" --latest
