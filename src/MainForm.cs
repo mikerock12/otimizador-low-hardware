@@ -521,8 +521,20 @@ namespace OtimizadorWin10
                 {
                     BeginInvoke((Action)delegate { barra.Value = Math.Min(feito, barra.Maximum); });
                 };
-                ApplyResult res = Engine.Aplicar(selecionadas, restore, log, prog);
-                BeginInvoke((Action)delegate { Finalizar(res); });
+                try
+                {
+                    ApplyResult res = Engine.Aplicar(selecionadas, restore, log, prog);
+                    BeginInvoke((Action)delegate { Finalizar(res); });
+                }
+                catch (Exception ex)
+                {
+                    string message = ex.Message;
+                    BeginInvoke((Action)delegate {
+                        aplicando = false; btnAplicar.Enabled = true; chkRestore.Enabled = true; btnVoltar.Visible = true;
+                        txtLog.AppendText("\r\nAPLICACAO INTERROMPIDA: " + message + "\r\nNao foi possivel concluir com seguranca. Confira o log e a reversao disponivel.\r\n");
+                        lblPasso.Text = "Aplicacao interrompida";
+                    });
+                }
             });
             t.IsBackground = true;
             t.Start();
@@ -534,8 +546,8 @@ namespace OtimizadorWin10
             otimizacaoAplicada = true;
             lblPasso.Text = "Otimizacao concluida";
             txtLog.AppendText("\r\n==========================================\r\n");
-            txtLog.AppendText(string.Format("CONCLUIDO: {0} acoes aplicadas, {1} falha(s), {2} aviso(s) nao criticos.\r\n",
-                res.Sucesso, res.Falhas, res.Avisos));
+            txtLog.AppendText(string.Format("CONCLUIDO: {0} acoes aplicadas, {1} falha(s), {2} aviso(s), {3} nao aplicavel(is).\r\n",
+                res.Sucesso, res.Falhas, res.Avisos, res.Ignoradas));
             txtLog.AppendText("Proximo passo: diagnostico e nota da maquina. Reinicie o computador ao final.\r\n");
             if (res.ArquivoLog != null) txtLog.AppendText("Log salvo em: " + res.ArquivoLog + "\r\n");
 

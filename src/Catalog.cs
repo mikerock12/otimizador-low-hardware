@@ -501,7 +501,7 @@ namespace OtimizadorWin10
             thumbs.Nome = "Limpar cache de miniaturas";
             thumbs.Descricao = "Remove caches de miniaturas corrompidos/inchados do Explorer. Eles serao recriados conforme o uso.";
             thumbs.Acoes.Add(new CleanAction(new string[] { @"%LocalAppData%\Microsoft\Windows\Explorer" },
-                "Limpar cache de miniaturas do Explorer"));
+                "Limpar somente arquivos thumbcache_*.db do Explorer", "thumbcache_*.db"));
             lista.Add(thumbs);
 
             return lista;
@@ -526,7 +526,7 @@ namespace OtimizadorWin10
             o.Id = "app-" + pkg.ToLowerInvariant();
             o.Categoria = CAT_APPS;
             o.Nome = "Remover: " + nome;
-            o.Descricao = string.Format("Desinstala o app nativo \"{0}\". Libera espaco em disco e evita processos/atualizacoes em segundo plano. Pode ser reinstalado gratuitamente pela Microsoft Store.", nome);
+            o.Descricao = string.Format("Desinstala o app nativo \"{0}\" dos perfis em que esta instalado (todos os usuarios). Apos remover, verifica se ainda existe instalacao ativa. A disponibilidade de reinstalacao depende da Microsoft Store. O arquivo de reversao nao reinstala aplicativos removidos.", nome);
             o.Tier = tier; o.DesmarcadaPorPadrao = desmarcada; o.Aviso = aviso; o.Aplicavel = cond;
             o.Acoes.Add(new AppxAction(pkg, nome));
             lista.Add(o);
