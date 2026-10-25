@@ -88,3 +88,30 @@ Cada merge em `main` passa pelo CI e gera uma nova release estável com SHA-256.
 ### Melhorias 1.1
 
 Reversão gravada atomicamente antes de cada ação, inclusive falhas parciais; itens que falham ao reverter permanecem disponíveis para nova tentativa. Comandos drenam stdout/stderr em paralelo e códigos de erro são propagados. Valores de registro expansíveis preservam as variáveis originais. A compilação usa UTF-8.
+
+### Correções 1.2 — 25/10/2026
+
+- Desinstalação Appx por nome completo, com preferência pelo bundle pai. Se a remoção
+  global falha (incluindo `0x80070002`), consulta os perfis que têm a instalação e tenta
+  remover por perfil. Uma consulta final confirma a ausência antes de registrar sucesso.
+- Apps ausentes ou somente preparados não geram falsa falha. Componentes protegidos
+  são mantidos e avisados; falhas reais continuam no resumo, com códigos do Windows.
+- O arquivo de reversão não reinstala apps removidos. A disponibilidade de reinstalação
+  depende da Microsoft Store; não há limpeza forçada de registros Appx/WindowsApps nem
+  alteração do provisionamento de usuários futuros. Se a integridade do Windows estiver
+  comprometida, pode ser necessário reparar DISM/SFC antes de repetir a remoção.
+- Tarefas agendadas usam a API nativa e voltam ao estado anterior (inclusive desativadas).
+  Erros de acesso ou da conta não são tratados como “tarefa ausente”.
+- Limpeza de miniaturas restringe-se a `thumbcache_*.db`; limpeza não segue junctions.
+  OneDrive é preservado quando o desinstalador oficial não é encontrado. Falhas de serviços
+  e de gravação são apresentadas ao usuário, sem afirmar conclusão inexistente.
+- Comandos Windows são resolvidos por caminhos do sistema; a rotina PowerShell é literal,
+  embutida, com entrada validada, sem baixar scripts ou alterar a política de execução.
+
+Verificação: `tools/testar.ps1` reúne 19 verificações C# e 25 verificações PowerShell com
+cmdlets simulados. Não desinstala apps reais nem aplica otimizações no computador de teste.
+O CI compila e executa a suíte antes de gerar o executável e o arquivo SHA-256 da release.
+
+Alertas de Windows/antivírus: confira [origem, assinatura e SHA-256 no portal](https://softwares.smellsliketech.com.br/seguranca/).
+Classificação heurística não prova falso positivo por si só; o código e as ações são
+documentados para permitir análise antes da autorização.

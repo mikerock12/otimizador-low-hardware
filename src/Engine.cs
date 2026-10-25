@@ -49,6 +49,7 @@ namespace OtimizadorWin10
         public int Sucesso;
         public int Falhas;
         public int Avisos;
+        public int Ignoradas;
         public string ArquivoUndo;
         public string ArquivoLog;
         public bool RestorePointOk;
@@ -71,6 +72,12 @@ namespace OtimizadorWin10
         public static ApplyResult Aplicar(List<Optimization> selecionadas, bool criarRestorePoint,
                                           Action<string> log, Action<int, int> progresso)
         {
+            return AplicarNaPasta(selecionadas, criarRestorePoint, log, progresso, PastaDados);
+        }
+
+        internal static ApplyResult AplicarNaPasta(List<Optimization> selecionadas, bool criarRestorePoint,
+            Action<string> log, Action<int, int> progresso, string pastaDados)
+        {
             var res = new ApplyResult();
             var undoList = new List<Dictionary<string, object>>();
             var logLines = new List<string>();
@@ -80,7 +87,7 @@ namespace OtimizadorWin10
                 log(s);
             };
 
-            string undoPath = Path.Combine(PastaDados, "undo_" + DateTime.Now.ToString("yyyyMMdd_HHmmss_fff") + ".json");
+            string undoPath = Path.Combine(pastaDados, "undo_" + DateTime.Now.ToString("yyyyMMdd_HHmmss_fff") + ".json");
             SalvarReversao(undoPath, undoList);
             res.ArquivoUndo = undoPath;
 
@@ -112,6 +119,8 @@ namespace OtimizadorWin10
                         logAll("  OK: " + acao.Describe());
                         res.Sucesso++;
                     }
+                    catch (ActionSkippedException ex) { logAll("  NAO APLICAVEL: " + ex.Message); res.Ignoradas++; }
+                    catch (ActionWarningException ex) { logAll("  AVISO: " + acao.Describe() + " -> " + ex.Message); res.Avisos++; }
                     catch (Exception ex)
                     {
                         if (acao.BestEffort)
@@ -135,7 +144,7 @@ namespace OtimizadorWin10
             // Grava log
             try
             {
-                string logPath = Path.Combine(PastaDados,
+                string logPath = Path.Combine(pastaDados,
                     "log_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".txt");
                 File.WriteAllLines(logPath, logLines, Encoding.UTF8);
                 res.ArquivoLog = logPath;

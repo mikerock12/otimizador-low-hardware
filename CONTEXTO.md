@@ -4,12 +4,39 @@
 > (outra IA, outro editor, outro dev). Lê-se este arquivo e entende-se **tudo** que o
 > software é, como foi construído, por que cada decisão foi tomada e o que falta.
 >
-> Última atualização: 29/08/2026 (repositório tornado público, README reescrito com
-> prints e exemplos de hardware, §13.6 — terceiro incidente de falso-positivo
-> `MachineLearning/Anomalous` do Malwarebytes — e §13.7, decisão de **não** comprar
-> certificado de assinatura de código).
+> Última atualização: 25/10/2026 — versão 1.2.0. Histórico de alertas e decisão de
+> não adquirir certificado de assinatura de código preservados no §13. A origem e o
+> SHA-256 identificam o arquivo publicado; não são garantia isolada de ausência de malware.
 
 ---
+
+## Correção de desinstalação — 1.2.0 (25/10/2026)
+
+As fotos do proprietário mostravam `0x80070002` em `Remove-AppxPackage -AllUsers` para
+vários pacotes Microsoft. A rotina antiga usava pipeline global com erros silenciados.
+`src/AppxRemoval.ps1` agora é recurso embutido no exe: filtra nome exato e pacotes
+Main/Bundle, prefere pai de bundle, diferencia perfis instalados de Staged, tenta por
+SID apenas quando a remoção global falha e reconsulta para confirmar o resultado.
+Não apaga registro Appx/WindowsApps nem força componente protegido. Apps ainda
+instalados são falha; protegidos são aviso; ausentes são “não aplicável”, sem OK falso.
+Uma base Appx corrompida pode continuar exigindo reparo do Windows; não mascarar isso.
+Remoção pode eliminar dados locais do app e não é revertida pelo journal; Store pode
+deixar de oferecer apps antigos. O catálogo informa o alcance em todos os perfis.
+
+`ScheduledTaskAccess.cs` usa COM oficial do Agendador; journal guarda `Enabled` real.
+Somente arquivo/caminho inexistente é ignorado (0x80070002/03); erro de conta
+0x8004130F e acesso negado permanecem falhas. Journals antigos sem Enabled mantêm
+compatibilidade com o comportamento anterior. Limpeza de miniaturas tem máscara e
+limpeza evita reparse points. OneDrive não é encerrado sem desinstalador disponível.
+Serviços e falhas fatais de gravação produzem aviso/erro sem derrubar a interface.
+
+19 testes C# + 25 PowerShell simulados, incluindo o recurso exato no Windows PowerShell.
+Leitura real da API COM de uma tarefa do Windows conferida sem alterar Enabled.
+Nenhuma desinstalação, otimização ou instalação de driver realizada no PC de desenvolvimento.
+Build continua C# 5/.NET Framework e único exe; versão 1.2.0.0. PowerShell recebe script
+literal com escape correto de argumentos; nenhum ExecutionPolicy Bypass ou download
+de script. Regressão roda em `tools/testar.ps1`; em máquinas com execução de arquivos
+.ps1 restrita, não mudar a política para testar: use um host já autorizado ou o CI.
 
 ## 1. O que é o software
 

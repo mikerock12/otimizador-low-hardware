@@ -11,7 +11,7 @@ if not exist bin mkdir bin
 "%CSC%" /nologo /target:winexe /codepage:65001 /out:bin\OtimizadorWin10.exe ^
   /win32manifest:app.manifest ^
   /win32icon:icon.ico ^
-  /resource:assets\logo.png,logo.png ^
+  /resource:assets\logo.png,logo.png /resource:src\AppxRemoval.ps1,AppxRemoval.ps1 ^
   /r:System.Management.dll ^
   /r:System.Web.Extensions.dll ^
   /r:System.ServiceProcess.dll ^
